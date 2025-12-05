@@ -1,1 +1,7 @@
-spring.application.name=sole
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: sole
+  profiles:
+    default: local
