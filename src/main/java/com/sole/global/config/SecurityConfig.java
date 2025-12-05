@@ -1,6 +1,8 @@
 package com.sole.global.config;
 
 import com.sole.domain.user.service.CustomUserDetailsService;
+import com.sole.global.security.RestAccessDeniedHandler;
+import com.sole.global.security.RestAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,9 +21,17 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final RestAccessDeniedHandler restAccessDeniedHandler;
 
-    public SecurityConfig(CustomUserDetailsService userDetailsService) {
+    public SecurityConfig(
+        CustomUserDetailsService userDetailsService,
+        RestAuthenticationEntryPoint restAuthenticationEntryPoint,
+        RestAccessDeniedHandler restAccessDeniedHandler
+    ) {
         this.userDetailsService = userDetailsService;
+        this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
+        this.restAccessDeniedHandler = restAccessDeniedHandler;
     }
 
     @Bean
@@ -45,6 +55,11 @@ public class SecurityConfig {
                     "/api/v1/auth/signup"
                 ).permitAll()
                 .anyRequest().authenticated()
+            )
+            // 인증/인가 예외를 JSON으로 통일
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(restAuthenticationEntryPoint)
+                .accessDeniedHandler(restAccessDeniedHandler)
             )
             // 로그아웃 엔드포인트 설정 (POST /api/v1/auth/logout)
             .logout(logout -> logout

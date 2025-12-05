@@ -5,11 +5,11 @@ import com.sole.domain.auth.dto.LoginResponse;
 import com.sole.domain.auth.dto.SignUpRequest;
 import com.sole.domain.auth.dto.SignUpResponse;
 import com.sole.domain.auth.service.AuthService;
+import com.sole.global.common.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,23 +23,23 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
-    public ResponseEntity<SignUpResponse> signUp(@Valid @RequestBody SignUpRequest request) {
+    public ApiResponse<SignUpResponse> signUp(@Valid @RequestBody SignUpRequest request) {
         Long userId = authService.signUp(request);
-        return ResponseEntity.ok(new SignUpResponse(userId));
+        return ApiResponse.success(new SignUpResponse(userId));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login (
+    public ApiResponse<LoginResponse> login (
             @Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest
     ) {
         LoginResponse response = authService.login(request, httpRequest);
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(response);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+    public ApiResponse<Void> logout(HttpServletRequest request, HttpServletResponse response) {
         authService.logout(request, response);
-        return ResponseEntity.ok().build();
+        return ApiResponse.success();
     }
 }

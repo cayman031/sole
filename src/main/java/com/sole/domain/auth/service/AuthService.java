@@ -8,6 +8,8 @@ import com.sole.domain.region.repository.RegionRepository;
 import com.sole.domain.user.entity.User;
 import com.sole.domain.user.repository.UserRepository;
 import com.sole.domain.user.service.UserPrincipal;
+import com.sole.global.common.ErrorCode;
+import com.sole.global.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -32,13 +34,13 @@ public class AuthService {
     @Transactional
     public Long signUp(SignUpRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
+            throw new BusinessException(ErrorCode.DUPLICATED_EMAIL);
         }
 
         Region region = null;
         if (request.regionId() != null) {
             region = regionRepository.findById(request.regionId())
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 지역입니다."));
+                    .orElseThrow(() -> new BusinessException(ErrorCode.REGION_NOT_FOUND));
         }
 
         String encodedPassword = passwordEncoder.encode(request.password());

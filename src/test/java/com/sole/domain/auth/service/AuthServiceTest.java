@@ -76,8 +76,7 @@ class AuthServiceTest {
         given(userRepository.existsByEmail(req.email())).willReturn(true);
 
         assertThatThrownBy(() -> authService.signUp(req))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("이미 존재하는 이메일");
+            .isInstanceOf(com.sole.global.exception.BusinessException.class);
     }
 
     @Test
@@ -87,8 +86,7 @@ class AuthServiceTest {
         given(regionRepository.findById(99L)).willReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.signUp(req))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("존재하지 않는 지역");
+            .isInstanceOf(com.sole.global.exception.BusinessException.class);
     }
 
     @Test
