@@ -5,9 +5,9 @@ import com.sole.domain.user.dto.UpdateUserProfileRequest;
 import com.sole.domain.user.dto.UserProfileResponse;
 import com.sole.domain.user.service.UserPrincipal;
 import com.sole.domain.user.service.UserService;
+import com.sole.global.common.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -23,29 +23,29 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/me")
-    public ResponseEntity<UserProfileResponse> getMe(
+    public ApiResponse<UserProfileResponse> getMe(
             @AuthenticationPrincipal UserPrincipal principal
     ) {
         // 세션 인증으로부터 현재 로그인한 유저 ID 사용
         UserProfileResponse response = userService.getMe(principal.getId());
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(response);
     }
 
     @PutMapping("/me")
-    public ResponseEntity<UserProfileResponse> updateMe(
+    public ApiResponse<UserProfileResponse> updateMe(
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody UpdateUserProfileRequest request
     ) {
         UserProfileResponse response = userService.updateProfile(principal.getId(), request);
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(response);
     }
 
     @PutMapping("/me/password")
-    public ResponseEntity<Void> changePassword(
+    public ApiResponse<Void> changePassword(
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody ChangePasswordRequest request
     ) {
         userService.changePassword(principal.getId(), request);
-        return ResponseEntity.ok().build();
+        return ApiResponse.success();
     }
 }
