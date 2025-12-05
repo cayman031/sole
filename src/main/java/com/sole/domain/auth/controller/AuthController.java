@@ -6,6 +6,7 @@ import com.sole.domain.auth.dto.SignUpRequest;
 import com.sole.domain.auth.dto.SignUpResponse;
 import com.sole.domain.auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -34,5 +35,11 @@ public class AuthController {
     ) {
         LoginResponse response = authService.login(request, httpRequest);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+        authService.logout(request, response);
+        return ResponseEntity.ok().build();
     }
 }

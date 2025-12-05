@@ -9,12 +9,14 @@ import com.sole.domain.user.entity.User;
 import com.sole.domain.user.repository.UserRepository;
 import com.sole.domain.user.service.UserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -69,5 +71,14 @@ public class AuthService {
                 authentication.getPrincipal();
         return new LoginResponse(principal.getId(), principal.getUsername(),
                 principal.getUsername());
+    }
+
+    public void logout(HttpServletRequest request, HttpServletResponse response) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        // 명시적으로 SecurityContext를 비워 세션/스레드 로컬을 정리
+        SecurityContextHolder.clearContext();
     }
 }
