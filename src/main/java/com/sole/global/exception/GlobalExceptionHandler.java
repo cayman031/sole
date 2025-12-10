@@ -3,6 +3,7 @@ package com.sole.global.exception;
 import com.sole.global.common.ErrorCode;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -37,6 +38,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleBusiness(BusinessException ex) {
         ErrorCode code = ex.getErrorCode();
         ErrorResponse body = ErrorResponse.of(code, ex.getMessage());
+        return ResponseEntity.status(code.getHttpStatus()).body(body);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        // UK_crew_member 위반 시 중복 참여로 매핑
+        ErrorCode code = ErrorCode.CREW_MEMBER_ALREADY_JOINED;
+        ErrorResponse body = ErrorResponse.of(code);
         return ResponseEntity.status(code.getHttpStatus()).body(body);
     }
 
