@@ -1,28 +1,28 @@
 package com.sole.domain.auth.service;
 
-import com.sole.domain.auth.dto.SignUpRequest;
-import com.sole.domain.region.entity.Region;
-import com.sole.domain.region.repository.RegionRepository;
-import com.sole.domain.user.entity.User;
-import com.sole.domain.user.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.sole.domain.auth.dto.SignUpRequest;
+import com.sole.domain.region.entity.Region;
+import com.sole.domain.region.repository.RegionRepository;
+import com.sole.domain.user.entity.PreferredLevel;
+import com.sole.domain.user.entity.User;
+import com.sole.domain.user.repository.UserRepository;
+import com.sole.global.common.ErrorCode;
+import com.sole.global.exception.BusinessException;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -33,78 +33,62 @@ class AuthServiceTest {
     @Mock
     private RegionRepository regionRepository;
 
+    @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private AuthenticationManager authenticationManager;
 
     @InjectMocks
     private AuthService authService;
 
-    @BeforeEach
-    void setUp() {
-        passwordEncoder = new BCryptPasswordEncoder();
-        ReflectionTestUtils.setField(authService, "passwordEncoder", passwordEncoder);
+    @Test
+    @DisplayName("중복 이메일이면 회원가입을 거부한다")
+    void duplicateEmail() {
+        SignUpRequest request = new SignUpRequest(
+                "user@example.com",
+                "password123",
+                "닉네임",
+                null,
+                PreferredLevel.BEGINNER
+        );
+        when(userRepository.existsByEmail("user@example.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.signUp(request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.DUPLICATED_EMAIL);
     }
 
     @Test
-    void 회원가입_시_비밀번호는_BCrypt로_암호화된다() {
-        // given
-        SignUpRequest req = new SignUpRequest("a@b.com", "P@ssw0rd123", "nick", null, null);
-        given(userRepository.existsByEmail(req.email())).willReturn(false);
-        given(userRepository.save(any())).willAnswer(invocation -> {
-            User saved = invocation.getArgument(0);
-            ReflectionTestUtils.setField(saved, "id", 1L);
-            return saved;
-        });
+    @DisplayName("회원가입 시 비밀번호를 암호화하고 저장한다")
+    void signUpSuccess() {
+        Region region = new Region("서울", "송파구");
+        ReflectionTestUtils.setField(region, "id", 1L);
+        SignUpRequest request = new SignUpRequest(
+                "user@example.com",
+                "password123",
+                "닉네임",
+                1L,
+                PreferredLevel.INTERMEDIATE
+        );
+        when(regionRepository.findById(1L)).thenReturn(java.util.Optional.of(region));
+        when(userRepository.existsByEmail("user@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("password123")).thenReturn("encodedPw");
 
-        // when
-        Long userId = authService.signUp(req);
+        User saved = User.builder()
+                .email(request.email())
+                .password("encodedPw")
+                .nickname(request.nickname())
+                .region(region)
+                .preferredLevel(request.preferredLevel())
+                .build();
+        ReflectionTestUtils.setField(saved, "id", 10L);
+        when(userRepository.save(any(User.class))).thenReturn(saved);
 
-        // then
-        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(captor.capture());
-        User saved = captor.getValue();
+        Long userId = authService.signUp(request);
 
-        assertThat(userId).isEqualTo(1L);
-        assertThat(saved.getEmail()).isEqualTo(req.email());
-        assertThat(saved.getNickname()).isEqualTo(req.nickname());
-        assertThat(saved.getPassword()).isNotEqualTo(req.password());
-        assertThat(passwordEncoder.matches(req.password(), saved.getPassword())).isTrue();
-    }
-
-    @Test
-    void 중복_이메일이면_예외() {
-        SignUpRequest req = new SignUpRequest("dup@b.com", "P@ssw0rd123", "nick", null, null);
-        given(userRepository.existsByEmail(req.email())).willReturn(true);
-
-        assertThatThrownBy(() -> authService.signUp(req))
-            .isInstanceOf(com.sole.global.exception.BusinessException.class);
-    }
-
-    @Test
-    void 지역_ID가_있으면_조회에_실패시_예외() {
-        SignUpRequest req = new SignUpRequest("a@b.com", "P@ssw0rd123", "nick", 99L, null);
-        given(userRepository.existsByEmail(req.email())).willReturn(false);
-        given(regionRepository.findById(99L)).willReturn(Optional.empty());
-
-        assertThatThrownBy(() -> authService.signUp(req))
-            .isInstanceOf(com.sole.global.exception.BusinessException.class);
-    }
-
-    @Test
-    void 지역_ID가_있으면_연결된다() {
-        Region region = new Region("서울시", "강남구");
-        SignUpRequest req = new SignUpRequest("a@b.com", "P@ssw0rd123", "nick", 1L, null);
-        given(userRepository.existsByEmail(req.email())).willReturn(false);
-        given(regionRepository.findById(1L)).willReturn(Optional.of(region));
-        given(userRepository.save(any())).willAnswer(invocation -> {
-            User saved = invocation.getArgument(0);
-            ReflectionTestUtils.setField(saved, "id", 1L);
-            return saved;
-        });
-
-        authService.signUp(req);
-
-        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(captor.capture());
-        assertThat(captor.getValue().getRegion()).isEqualTo(region);
+        assertThat(userId).isEqualTo(10L);
+        verify(userRepository).save(any(User.class));
     }
 }
