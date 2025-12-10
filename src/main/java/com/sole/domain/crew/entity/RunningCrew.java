@@ -4,6 +4,8 @@ import com.sole.domain.region.entity.Region;
 import com.sole.domain.user.entity.PreferredLevel;
 import com.sole.domain.user.entity.User;
 import com.sole.global.common.BaseTimeEntity;
+import com.sole.global.common.ErrorCode;
+import com.sole.global.exception.BusinessException;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -86,5 +88,35 @@ public class RunningCrew extends BaseTimeEntity {
     public void addMember(CrewMember member) {
         members.add(member);
         member.assignCrew(this);
+    }
+
+    // 모임 정보 수정 (호스트 권한 체크 후 호출)
+    public void update(
+            String title,
+            String description,
+            Region region,
+            LocalDateTime meetingTime,
+            String place,
+            double latitude,
+            double longitude,
+            int maxParticipants,
+            PreferredLevel level
+    ) {
+        this.title = title;
+        this.description = description;
+        this.region = region;
+        this.meetingTime = meetingTime;
+        this.place = place;
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.maxParticipants = maxParticipants;
+        this.level = level;
+    }
+
+    // 현재 참여 인원 수로 정원 초과 여부 확인
+    public void validateCapacity(int currentCount) {
+        if (currentCount >= maxParticipants) {
+            throw new BusinessException(ErrorCode.CREW_MEMBER_LIMIT_EXCEEDED);
+        }
     }
 }

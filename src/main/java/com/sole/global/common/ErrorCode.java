@@ -15,6 +15,8 @@ public enum ErrorCode {
     DUPLICATED_EMAIL(HttpStatus.BAD_REQUEST, "DUPLICATED_EMAIL", "이미 존재하는 이메일입니다."),
     CREW_NOT_FOUND(HttpStatus.NOT_FOUND, "CREW_NOT_FOUND", "모임을 찾을 수 없습니다."),
     CREW_MEMBER_ALREADY_JOINED(HttpStatus.BAD_REQUEST, "CREW_MEMBER_ALREADY_JOINED", "이미 참여한 모임입니다."),
+    CREW_MEMBER_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "CREW_MEMBER_LIMIT_EXCEEDED", "모임 최대 인원을 초과했습니다."),
+    CREW_MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "CREW_MEMBER_NOT_FOUND", "참여하지 않은 모임입니다."),
 
     // 5xx
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다.");

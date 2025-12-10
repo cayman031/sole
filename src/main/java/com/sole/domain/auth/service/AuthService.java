@@ -73,7 +73,10 @@ public class AuthService {
                 authenticationManager.authenticate(authToken);
 
         // 인증 성공 시 세션 생성/갱신
-        httpRequest.getSession(true);
+        HttpSession session = httpRequest.getSession(true);
+        // SecurityContext에 Authentication 저장하여 이후 요청에서 인식되도록 한다.
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
 
         UserPrincipal principal = (UserPrincipal)
                 authentication.getPrincipal();
