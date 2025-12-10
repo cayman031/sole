@@ -1,18 +1,30 @@
 package com.sole.support;
 
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
+@Testcontainers
+@SpringBootTest
+@ActiveProfiles("testcontainers")
 public abstract class IntegrationTestBase {
+
+    @Container
+    private static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0")
+            .withDatabaseName("sole_test")
+            .withUsername("test")
+            .withPassword("test");
 
     @DynamicPropertySource
     static void overrideProps(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", () -> "jdbc:h2:mem:sole-int;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false");
-        registry.add("spring.datasource.driver-class-name", () -> "org.h2.Driver");
-        registry.add("spring.datasource.username", () -> "sa");
-        registry.add("spring.datasource.password", () -> "");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-        registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.H2Dialect");
-        registry.add("spring.flyway.enabled", () -> false);
+        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
+        registry.add("spring.datasource.username", MYSQL::getUsername);
+        registry.add("spring.datasource.password", MYSQL::getPassword);
+        registry.add("spring.datasource.driver-class-name", MYSQL::getDriverClassName);
+        registry.add("spring.flyway.enabled", () -> true);
     }
 }
