@@ -1,8 +1,11 @@
 package com.sole.domain.crew.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.sole.domain.crew.dto.CrewCreateRequest;
+import com.sole.domain.crew.dto.NearbyCrewRequest;
+import com.sole.domain.crew.dto.NearbyCrewResponse;
 import com.sole.domain.region.entity.Region;
 import com.sole.domain.region.repository.RegionRepository;
 import com.sole.domain.user.entity.PreferredLevel;
@@ -12,6 +15,8 @@ import com.sole.global.common.ErrorCode;
 import com.sole.global.exception.BusinessException;
 import com.sole.support.IntegrationTestBase;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -101,5 +106,60 @@ class CrewServiceIntegrationTest extends IntegrationTestBase {
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.CREW_MEMBER_ALREADY_JOINED);
+    }
+
+    @Test
+    @Transactional
+    @DisplayName("반경 내 모임을 거리 오름차순으로 조회한다")
+    void getNearbyCrewsSortedByDistance() {
+        Region region = regionRepository.save(new Region("서울", "중구"));
+        User host = userRepository.save(User.builder()
+                .email("host3@example.com")
+                .password("pw")
+                .nickname("호스트3")
+                .region(region)
+                .preferredLevel(PreferredLevel.BEGINNER)
+                .build());
+
+        double baseLat = 37.5665;
+        double baseLng = 126.9780;
+        LocalDateTime meeting = LocalDateTime.now().plusDays(2);
+
+        Long veryCloseId = createCrew(host, region, "0.2km", baseLat + 0.002, baseLng, meeting);
+        Long closeId = createCrew(host, region, "1km", baseLat + 0.009, baseLng, meeting);
+        createCrew(host, region, "5km", baseLat + 0.05, baseLng, meeting);
+
+        NearbyCrewRequest request2km = new NearbyCrewRequest(
+                baseLat, baseLng, 2.0, null, null, null
+        );
+        List<NearbyCrewResponse> within2km = crewService.getNearbyCrews(request2km);
+
+        assertThat(within2km).extracting(NearbyCrewResponse::crewId)
+                .containsExactly(veryCloseId, closeId);
+        assertThat(within2km)
+                .isSortedAccordingTo(Comparator.comparingDouble(NearbyCrewResponse::distanceKm));
+        assertThat(within2km.get(within2km.size() - 1).distanceKm()).isLessThanOrEqualTo(2.0);
+
+        NearbyCrewRequest requestHalfKm = new NearbyCrewRequest(
+                baseLat, baseLng, 0.3, null, null, null
+        );
+        List<NearbyCrewResponse> withinHalfKm = crewService.getNearbyCrews(requestHalfKm);
+        assertThat(withinHalfKm).extracting(NearbyCrewResponse::crewId)
+                .containsExactly(veryCloseId);
+    }
+
+    private Long createCrew(User host, Region region, String title,
+                            double latitude, double longitude, LocalDateTime meetingTime) {
+        return crewService.createCrew(host.getId(), new CrewCreateRequest(
+                title,
+                "설명",
+                region.getId(),
+                meetingTime,
+                "장소",
+                latitude,
+                longitude,
+                10,
+                PreferredLevel.BEGINNER
+        ));
     }
 }

@@ -1,5 +1,7 @@
 package com.sole.domain.crew.controller;
 
+import java.util.List;
+
 import com.sole.domain.crew.dto.*;
 import com.sole.domain.crew.service.CrewService;
 import com.sole.domain.user.service.UserPrincipal;
@@ -11,11 +13,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/crews")
 @RequiredArgsConstructor
+@Validated
 public class CrewController {
 
     private final CrewService crewService;
@@ -79,5 +83,13 @@ public class CrewController {
     ) {
         crewService.leaveCrew(crewId, principal.getId());
         return ApiResponse.success();
+    }
+
+    @GetMapping("/nearby")
+    public ApiResponse<List<NearbyCrewResponse>> getNearbyCrews(
+            @Valid @ModelAttribute NearbyCrewRequest request
+    ) {
+        List<NearbyCrewResponse> response = crewService.getNearbyCrews(request);
+        return ApiResponse.success(response);
     }
 }

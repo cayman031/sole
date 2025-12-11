@@ -1,6 +1,12 @@
 package com.sole.domain.crew.service;
 
-import com.sole.domain.crew.dto.*;
+import com.sole.domain.crew.dto.CrewCreateRequest;
+import com.sole.domain.crew.dto.CrewDetailResponse;
+import com.sole.domain.crew.dto.CrewSearchCondition;
+import com.sole.domain.crew.dto.CrewSummaryResponse;
+import com.sole.domain.crew.dto.CrewUpdateRequest;
+import com.sole.domain.crew.dto.NearbyCrewRequest;
+import com.sole.domain.crew.dto.NearbyCrewResponse;
 import com.sole.domain.crew.entity.CrewMember;
 import com.sole.domain.crew.entity.CrewRole;
 import com.sole.domain.crew.entity.RunningCrew;
@@ -12,7 +18,11 @@ import com.sole.domain.user.entity.User;
 import com.sole.domain.user.repository.UserRepository;
 import com.sole.global.common.ErrorCode;
 import com.sole.global.exception.BusinessException;
+import com.sole.global.util.DistanceCalculator;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -154,6 +164,53 @@ public class CrewService {
         crewMemberRepository.delete(member);
         crew.getMembers().remove(member); // 컬렉션 캐시 정합성 유지
     }
+
+    @Transactional(readOnly = true)
+    public List<NearbyCrewResponse> getNearbyCrews(NearbyCrewRequest request) {
+        BoundingBox box = calculateBoundingBox(
+                request.latitude(),
+                request.longitude(),
+                request.radiusKm()
+        );
+
+        List<CrewSummaryResponse> candidates = runningCrewRepository.searchWithinBoundingBox(
+                box.minLat(), box.maxLat(), box.minLng(), box.maxLng(),
+                request.level(),
+                request.startDateTime(),
+                request.endDateTimeExclusive()
+        );
+
+        return candidates.stream()
+                .map(summary -> {
+                    double distanceKm = DistanceCalculator.haversineKm(
+                            request.latitude(), request.longitude(),
+                            summary.latitude(), summary.longitude()
+                    );
+                    return NearbyCrewResponse.of(summary, distanceKm);
+                })
+                .filter(resp -> resp.distanceKm() <= request.radiusKm())
+                .sorted(Comparator.comparingDouble(NearbyCrewResponse::distanceKm))
+                .collect(Collectors.toList());
+    }
+
+    private BoundingBox calculateBoundingBox(double lat, double lng, double radiusKm) {
+        double earthRadiusKm = DistanceCalculator.earthRadiusKm();
+        double latDelta = Math.toDegrees(radiusKm / earthRadiusKm);
+        double lngDelta = Math.toDegrees(radiusKm / earthRadiusKm / Math.cos(Math.toRadians(lat)));
+
+        double minLat = clamp(lat - latDelta, -90, 90);
+        double maxLat = clamp(lat + latDelta, -90, 90);
+        double minLng = clamp(lng - lngDelta, -180, 180);
+        double maxLng = clamp(lng + lngDelta, -180, 180);
+        return new BoundingBox(minLat, maxLat, minLng, maxLng);
+    }
+
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private record BoundingBox(double minLat, double maxLat, double minLng,
+                               double maxLng) {}
 
     private RunningCrew loadCrewAndValidateHost(Long crewId, Long requesterId) {
         RunningCrew crew = runningCrewRepository.findById(crewId)
