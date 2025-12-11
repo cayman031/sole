@@ -51,4 +51,14 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // Propagate perf-related system properties to the test JVM when running manual perf tests
+    ["perf.enabled", "perf.baseUrl", "perf.query", "perf.requests", "perf.concurrency", "perf.requestTimeoutSeconds", "perf.skipAuth", "perf.failOnError"].forEach { key ->
+        if (System.getProperty(key) != null) {
+            systemProperty key, System.getProperty(key)
+        }
+    }
+    // Helpful when running perf tests to see stdout in console
+    testLogging {
+        showStandardStreams = true
+    }
 }

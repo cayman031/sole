@@ -52,7 +52,8 @@ public class SecurityConfig {
                     "/api/docs/**",
                     "/h2-console/**",
                     "/api/v1/auth/login",
-                    "/api/v1/auth/signup"
+                    "/api/v1/auth/signup",
+                    "/api/v1/crews/nearby"
                 ).permitAll()
                 .anyRequest().authenticated()
             )
