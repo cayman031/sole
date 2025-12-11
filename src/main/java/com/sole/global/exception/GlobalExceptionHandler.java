@@ -5,6 +5,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -45,6 +46,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         // UK_crew_member 위반 시 중복 참여로 매핑
         ErrorCode code = ErrorCode.CREW_MEMBER_ALREADY_JOINED;
+        ErrorResponse body = ErrorResponse.of(code);
+        return ResponseEntity.status(code.getHttpStatus()).body(body);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex) {
+        ErrorCode code = ErrorCode.AUTHENTICATION_FAILED;
         ErrorResponse body = ErrorResponse.of(code);
         return ResponseEntity.status(code.getHttpStatus()).body(body);
     }
