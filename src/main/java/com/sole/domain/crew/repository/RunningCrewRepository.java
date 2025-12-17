@@ -1,7 +1,7 @@
 package com.sole.domain.crew.repository;
 
-import com.sole.domain.crew.dto.CrewSummaryResponse;
 import com.sole.domain.crew.entity.RunningCrew;
+import com.sole.domain.crew.repository.projection.CrewSummaryProjection;
 import com.sole.domain.user.entity.PreferredLevel;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,37 +21,8 @@ public interface RunningCrewRepository extends JpaRepository<RunningCrew,
     Optional<RunningCrew> findWithHostRegionMembersById(Long id);
 
     @Query("""
-          select new com.sole.domain.crew.dto.CrewSummaryResponse(
-              c.id,
-              c.title,
-              r.id,
-              r.city,
-              r.district,
-              c.meetingTime,
-              c.place,
-              c.latitude,
-              c.longitude,
-              c.maxParticipants,
-              (select count(cm) from CrewMember cm where cm.crew = c),
-              c.level
-          )
-          from RunningCrew c
-          join c.region r
-          where (:regionId is null or r.id = :regionId)
-            and (:level is null or c.level = :level)
-            and (:start is null or c.meetingTime >= :start)
-            and (:end is null or c.meetingTime < :end)
-          """)
-    Page<CrewSummaryResponse> search(
-            @Param("regionId") Long regionId,
-            @Param("level") PreferredLevel level,
-            @Param("start") LocalDateTime startDateTime,
-            @Param("end") LocalDateTime endExclusive,
-            Pageable pageable
-    );
-
-    @Query("""
-            select new com.sole.domain.crew.dto.CrewSummaryResponse(
+            select new
+  com.sole.domain.crew.repository.projection.CrewSummaryProjection(
                 c.id,
                 c.title,
                 r.id,
@@ -67,13 +38,44 @@ public interface RunningCrewRepository extends JpaRepository<RunningCrew,
             )
             from RunningCrew c
             join c.region r
-            where c.latitude between :minLat and :maxLat
-              and c.longitude between :minLng and :maxLng
+            where (:regionId is null or r.id = :regionId)
               and (:level is null or c.level = :level)
               and (:start is null or c.meetingTime >= :start)
               and (:end is null or c.meetingTime < :end)
             """)
-    List<CrewSummaryResponse> searchWithinBoundingBox(
+    Page<CrewSummaryProjection> search(
+            @Param("regionId") Long regionId,
+            @Param("level") PreferredLevel level,
+            @Param("start") LocalDateTime startDateTime,
+            @Param("end") LocalDateTime endExclusive,
+            Pageable pageable
+    );
+
+    @Query("""
+              select new
+  com.sole.domain.crew.repository.projection.CrewSummaryProjection(
+                  c.id,
+                  c.title,
+                  r.id,
+                  r.city,
+                  r.district,
+                  c.meetingTime,
+                  c.place,
+                  c.latitude,
+                  c.longitude,
+                  c.maxParticipants,
+                  (select count(cm) from CrewMember cm where cm.crew = c),
+                  c.level
+              )
+              from RunningCrew c
+              join c.region r
+              where c.latitude between :minLat and :maxLat
+                and c.longitude between :minLng and :maxLng
+                and (:level is null or c.level = :level)
+                and (:start is null or c.meetingTime >= :start)
+                and (:end is null or c.meetingTime < :end)
+              """)
+    List<CrewSummaryProjection> searchWithinBoundingBox(
             @Param("minLat") double minLat,
             @Param("maxLat") double maxLat,
             @Param("minLng") double minLng,
