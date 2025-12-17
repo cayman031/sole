@@ -1,7 +1,6 @@
 package com.sole.domain.auth.service;
 
 import com.sole.domain.auth.dto.LoginRequest;
-import com.sole.domain.auth.dto.LoginResponse;
 import com.sole.domain.auth.dto.SignUpRequest;
 import com.sole.domain.region.entity.Region;
 import com.sole.domain.region.repository.RegionRepository;
@@ -10,19 +9,15 @@ import com.sole.domain.user.repository.UserRepository;
 import com.sole.domain.user.service.UserPrincipal;
 import com.sole.global.common.ErrorCode;
 import com.sole.global.exception.BusinessException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -62,35 +57,24 @@ public class AuthService {
         return id;
     }
 
-    public LoginResponse login(LoginRequest request, HttpServletRequest
-            httpRequest) {
+    @Transactional(readOnly = true)
+    public LoginResult login(LoginRequest request) {
         UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(request.email(),
-                        request.password());
+                new UsernamePasswordAuthenticationToken(request.email(), request.password());
 
-        // 실패 시 BadCredentialsException 등이 던져짐
-        Authentication authentication =
-                authenticationManager.authenticate(authToken);
+        Authentication authentication = authenticationManager.authenticate(authToken);
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
 
-        // 인증 성공 시 세션 생성/갱신
-        HttpSession session = httpRequest.getSession(true);
-        // SecurityContext에 Authentication 저장하여 이후 요청에서 인식되도록 한다.
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        session.setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
-
-        UserPrincipal principal = (UserPrincipal)
-                authentication.getPrincipal();
-        log.info("user login success id={} email={}", principal.getId(), principal.getUsername());
-        return new LoginResponse(principal.getId(), principal.getUsername(),
-                principal.getUsername());
+        return new LoginResult(authentication, principal.getId(),principal.getUsername(),principal.getNickname());
     }
 
-    public void logout(HttpServletRequest request, HttpServletResponse response) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
-        // 명시적으로 SecurityContext를 비워 세션/스레드 로컬을 정리
-        SecurityContextHolder.clearContext();
-    }
+    @Transactional(readOnly = true)
+    public void logout() {}
+
+    public record LoginResult(
+            Authentication authentication,
+            Long userId,
+            String email,
+            String nickname
+    ) {}
 }

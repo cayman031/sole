@@ -12,10 +12,11 @@ public class UserPrincipal implements UserDetails {
 
     private final User user;
     private final List<GrantedAuthority> authorities;
+    private final String nickname;
 
     private UserPrincipal(User user) {
         this.user = user;
-        // 현재는 단일 역할만 가정. 향후 Role 컬럼/테이블이 생기면 여기서 매핑.
+        this.nickname = user.getNickname();
         this.authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
@@ -25,6 +26,10 @@ public class UserPrincipal implements UserDetails {
 
     public Long getId() {
         return user.getId();
+    }
+
+    public String getNickname() {
+        return nickname;
     }
 
     @Override
@@ -45,21 +50,21 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return true; // 계정 만료 정책 추가 시 변경
+        return true;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return true; // 잠금 정책 추가 시 변경
+        return true;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true; // 비밀번호 만료 정책 추가 시 변경
+        return true;
     }
 
     @Override
     public boolean isEnabled() {
-        return true; // 활성/비활성 플래그 추가 시 변경
+        return true;
     }
 }

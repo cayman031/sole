@@ -2,6 +2,7 @@ package com.sole.domain.auth.controller;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -9,10 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sole.domain.auth.dto.LoginRequest;
-import com.sole.domain.auth.dto.LoginResponse;
 import com.sole.domain.auth.dto.SignUpRequest;
 import com.sole.domain.auth.service.AuthService;
+import com.sole.domain.auth.service.AuthService.LoginResult;
 import com.sole.domain.user.entity.PreferredLevel;
+import com.sole.global.security.SessionManager;
 import com.sole.global.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -30,6 +33,9 @@ class AuthControllerTest {
 
     @Mock
     private AuthService authService;
+
+    @Mock
+    private SessionManager sessionManager;
 
     @InjectMocks
     private AuthController authController;
@@ -81,8 +87,10 @@ class AuthControllerTest {
     @Test
     @DisplayName("로그인 성공 시 성공 응답을 반환한다")
     void loginSuccess() throws Exception {
-        when(authService.login(any(LoginRequest.class), any()))
-                .thenReturn(new LoginResponse(1L, "닉네임", "user@example.com"));
+        Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
+        when(authService.login(any(LoginRequest.class)))
+                .thenReturn(new LoginResult(authentication, 1L, "user@example.com", "닉네임"));
+        doNothing().when(sessionManager).storeAuthentication(any(), any());
 
         LoginRequest request = new LoginRequest("user@example.com", "password123");
 
