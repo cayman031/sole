@@ -1,5 +1,6 @@
 package com.sole.domain.crew.dto;
 
+import com.sole.domain.crew.repository.projection.CrewSummaryProjection;
 import com.sole.domain.user.entity.PreferredLevel;
 import java.time.LocalDateTime;
 
@@ -18,7 +19,7 @@ public record NearbyCrewResponse(
         long currentParticipants,
         PreferredLevel level
 ) {
-    public static NearbyCrewResponse of(CrewSummaryResponse summary, double distanceKm) {
+    public static NearbyCrewResponse of(CrewSummaryProjection summary, double distanceKm) {
         return new NearbyCrewResponse(
                 summary.id(),
                 summary.title(),

@@ -12,6 +12,7 @@ import com.sole.domain.crew.entity.CrewRole;
 import com.sole.domain.crew.entity.RunningCrew;
 import com.sole.domain.crew.repository.CrewMemberRepository;
 import com.sole.domain.crew.repository.RunningCrewRepository;
+import com.sole.domain.crew.repository.projection.CrewSummaryProjection;
 import com.sole.domain.region.entity.Region;
 import com.sole.domain.region.repository.RegionRepository;
 import com.sole.domain.user.entity.User;
@@ -82,12 +83,13 @@ public class CrewService {
     @Transactional(readOnly = true)
     public Page<CrewSummaryResponse> getCrews(CrewSearchCondition condition, Pageable pageable) {
         return runningCrewRepository.search(
-                condition.regionId(),
-                condition.level(),
-                condition.startDateTime(),
-                condition.endDateTimeExclusive(),
-                pageable
-        );
+                        condition.regionId(),
+                        condition.level(),
+                        condition.startDateTime(),
+                        condition.endDateTimeExclusive(),
+                        pageable
+                )
+                .map(CrewSummaryResponse::from);
     }
 
     @Transactional
@@ -95,7 +97,8 @@ public class CrewService {
         RunningCrew crew = loadCrewAndValidateHost(crewId, requesterId);
 
         Region region = regionRepository.findById(request.regionId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.REGION_NOT_FOUND));
+                .orElseThrow(() -> new
+                        BusinessException(ErrorCode.REGION_NOT_FOUND));
 
         crew.update(
                 request.title(),
@@ -140,8 +143,7 @@ public class CrewService {
         try {
             crewMemberRepository.saveAndFlush(member);
         } catch (DataIntegrityViolationException ex) {
-            throw new
-                    BusinessException(ErrorCode.CREW_MEMBER_ALREADY_JOINED);
+            throw new BusinessException(ErrorCode.CREW_MEMBER_ALREADY_JOINED);
         }
     }
 
@@ -166,19 +168,21 @@ public class CrewService {
     }
 
     @Transactional(readOnly = true)
-    public List<NearbyCrewResponse> getNearbyCrews(NearbyCrewRequest request) {
+    public List<NearbyCrewResponse> getNearbyCrews(NearbyCrewRequest request)
+    {
         BoundingBox box = calculateBoundingBox(
                 request.latitude(),
                 request.longitude(),
                 request.radiusKm()
         );
 
-        List<CrewSummaryResponse> candidates = runningCrewRepository.searchWithinBoundingBox(
-                box.minLat(), box.maxLat(), box.minLng(), box.maxLng(),
-                request.level(),
-                request.startDateTime(),
-                request.endDateTimeExclusive()
-        );
+        List<CrewSummaryProjection> candidates =
+                runningCrewRepository.searchWithinBoundingBox(
+                        box.minLat(), box.maxLat(), box.minLng(), box.maxLng(),
+                        request.level(),
+                        request.startDateTime(),
+                        request.endDateTimeExclusive()
+                );
 
         return candidates.stream()
                 .map(summary -> {
@@ -209,8 +213,7 @@ public class CrewService {
         return Math.max(min, Math.min(max, value));
     }
 
-    private record BoundingBox(double minLat, double maxLat, double minLng,
-                               double maxLng) {}
+    private record BoundingBox(double minLat, double maxLat, double minLng, double maxLng) {}
 
     private RunningCrew loadCrewAndValidateHost(Long crewId, Long requesterId) {
         RunningCrew crew = runningCrewRepository.findById(crewId)

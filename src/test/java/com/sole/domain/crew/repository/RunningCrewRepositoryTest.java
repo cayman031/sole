@@ -2,8 +2,8 @@ package com.sole.domain.crew.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.sole.domain.crew.dto.CrewSummaryResponse;
 import com.sole.domain.crew.entity.RunningCrew;
+import com.sole.domain.crew.repository.projection.CrewSummaryProjection;
 import com.sole.domain.region.entity.Region;
 import com.sole.domain.region.repository.RegionRepository;
 import com.sole.domain.user.entity.PreferredLevel;
@@ -80,7 +80,7 @@ class RunningCrewRepositoryTest {
         runningCrewRepository.save(crew1);
         runningCrewRepository.save(crew2);
 
-        Page<CrewSummaryResponse> page = runningCrewRepository.search(
+        Page<CrewSummaryProjection> page = runningCrewRepository.search(
                 seoul.getId(),
                 PreferredLevel.INTERMEDIATE,
                 now.plusDays(2),
@@ -92,6 +92,7 @@ class RunningCrewRepositoryTest {
                 .hasSize(1)
                 .allSatisfy(summary -> {
                     assertThat(summary.title()).isEqualTo("저녁 달리기");
+
                     assertThat(summary.level()).isEqualTo(PreferredLevel.INTERMEDIATE);
                 });
     }
