@@ -140,11 +140,7 @@ public class CrewService {
                 .build();
 
         crew.addMember(member);
-        try {
-            crewMemberRepository.saveAndFlush(member);
-        } catch (DataIntegrityViolationException ex) {
-            throw new BusinessException(ErrorCode.CREW_MEMBER_ALREADY_JOINED);
-        }
+        crewMemberRepository.saveAndFlush(member); // 중복 레이스는 DB 제약으로 막고 전역 핸들러에서 매핑
     }
 
     @Transactional
